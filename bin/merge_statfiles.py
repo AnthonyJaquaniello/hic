@@ -11,11 +11,21 @@
 Script to merge any files with the same template
 """
 
-import argparse
+import getopt
 import sys
 import glob
 import os
 from collections import OrderedDict
+
+def usage():
+    """Usage function"""
+    print "Usage : merge_statfiles.py"
+    print "-d/--dir <files directory>"
+    print "-p/--pattern <files pattern>"
+    print "[-v/--verbose] <Verbose>"
+    print "[-h/--help] <Help>"
+    return
+
 
 def num(s):
     try:
@@ -23,25 +33,61 @@ def num(s):
     except ValueError:
         return float(s)
 
+def get_args():
+    """Get argument"""
+    try:
+        opts, args = getopt.getopt(
+            sys.argv[1:],
+            "d:p:vh",
+            ["dir=",
+             "pattern=",
+             "verbose", "help"])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(-1)
+    return opts
 
 if __name__ == "__main__":
     ## Read command line arguments
-    parser = argparse.ArgumentParser()      
-    parser.add_argument("-f", "--files", help="List of input file(s)", type=str, nargs='+')
-    parser.add_argument("-v", "--verbose", help="verbose mode", action='store_true')
-    args = parser.parse_args()
-               
-    infiles = args.files
+    opts = get_args()
+    verbose = False
+    path = None
+    pattern = None
+    output = "-"
+
+    if len(opts) == 0:
+        usage()
+        sys.exit()
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-d", "--dir"):
+            path = arg
+        elif opt in ("-p", "--pattern"):
+            pattern = arg
+        elif opt in ("-v", "--verbose"):
+            verbose=True
+        else:
+            assert False, "unhandled option"
+
+    ## Verbose mode
+    if verbose:
+        print "## merge_statfiles.py"
+        print "## dir=", path
+        print "## pattern=", pattern
+ 
+    infiles = [name for name in glob.glob(os.path.join(os.path.abspath(path), pattern)) if os.path.isfile(os.path.join(path,name))]
     li = len(infiles)
 
     if li > 0:
-        if args.verbose:
-            print "## merge_statfiles.py"
+        if verbose:
             print "## Merging "+ str(li)+" files"
  
         ## Reading first file to get the template
         template = OrderedDict()
-        if args.verbose:
+        if verbose:
             print "## Use "+infiles[0]+" as template"
         with open(infiles[0]) as f:
             for line in f:
